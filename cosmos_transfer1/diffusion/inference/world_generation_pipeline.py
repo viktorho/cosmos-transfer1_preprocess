@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import os
-from collections import defaultdict
 from typing import List, Optional, Union
 
 import cv2
@@ -51,17 +50,14 @@ from cosmos_transfer1.diffusion.inference.inference_utils import (
     generate_control_input,
     generate_world_from_control,
     get_batched_ctrl_batch,
-    get_ctrl_batch,
     get_ctrl_batch_mv,
     get_upscale_size,
-    get_video_batch,
     get_video_batch_for_multiview_model,
     load_model_by_config,
     load_network_model,
     load_tokenizer_model,
     merge_patches_into_video,
     non_strict_load_model,
-    read_and_resize_input,
     read_video_or_image_into_frames_BCTHW,
     resize_control_weight_map,
     resize_video,
@@ -96,7 +92,7 @@ MODEL_NAME_DICT = {
     SV2MV_t2w_LIDAR2WORLD_CONTROLNET_7B_CHECKPOINT_PATH: "CTRL_7Bv1pt3_sv2mv_t2w_57frames_control_input_lidar_block3",
     SV2MV_t2w_HDMAP2WORLD_CONTROLNET_7B_WAYMO_CHECKPOINT_PATH: "CTRL_7Bv1pt3_sv2mv_t2w_57frames_control_input_hdmap_waymo_block3",
     SV2MV_v2w_HDMAP2WORLD_CONTROLNET_7B_WAYMO_CHECKPOINT_PATH: "CTRL_7Bv1pt3_sv2mv_v2w_57frames_control_input_hdmap_waymo_block3",
-    EDGE2WORLD_CONTROLNET_7B_DISTILLED_CHECKPOINT_PATH: "dev_v2w_ctrl_7bv1pt3_VisControlCanny_video_only_dmd2_fsdp",
+    EDGE2WORLD_CONTROLNET_7B_DISTILLED_CHECKPOINT_PATH: "CTRL_7Bv1pt3_lvg_fsdp_distilled_121frames_control_input_edge_block3",
 }
 MODEL_CLASS_DICT = {
     BASE_7B_CHECKPOINT_PATH: VideoDiffusionModelWithCtrl,
@@ -119,8 +115,6 @@ MODEL_CLASS_DICT = {
     SV2MV_v2w_HDMAP2WORLD_CONTROLNET_7B_WAYMO_CHECKPOINT_PATH: MultiVideoDiffusionModelWithCtrl,
     EDGE2WORLD_CONTROLNET_7B_DISTILLED_CHECKPOINT_PATH: VideoDistillModelWithCtrl,
 }
-
-from collections import defaultdict
 
 
 class DiffusionControl2WorldGenerationPipeline(BaseWorldGenerationPipeline):
@@ -1252,7 +1246,11 @@ class DistilledControl2WorldGenerationPipeline(DiffusionControl2WorldGenerationP
 
         with skip_init_linear():
             self.model.set_up_model()
-        checkpoint_path = f"{self.checkpoint_dir}/{self.checkpoint_name}"
+
+        assert len(self.control_inputs) == 1, "Distilled model only supports single control input"
+        for _, config in self.control_inputs.items():
+            checkpoint_path = config["ckpt_path"]
+            break
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         state_dict = checkpoint.get("model", checkpoint)
 
@@ -1271,7 +1269,6 @@ class DistilledControl2WorldGenerationPipeline(DiffusionControl2WorldGenerationP
         # Load base model weights
         if base_state_dict:
             self.model.model["net"].base_model.net.load_state_dict(base_state_dict, strict=False)
-            self.model.model.base_model.load_state_dict(base_state_dict, strict=False)
         # Load control weights
         if ctrl_state_dict:
             self.model.model["net"].net_ctrl.load_state_dict(ctrl_state_dict, strict=False)
@@ -1347,24 +1344,12 @@ class DistilledControl2WorldGenerationPipeline(DiffusionControl2WorldGenerationP
         N_clip = (num_total_frames_with_padding - self.num_input_frames) // num_new_generated_frames
 
         video = []
-        initial_condition_input = None
-
         prev_frames = None
         log.info(f"N_clip: {N_clip}")
         for i_clip in tqdm(range(N_clip)):
-            # data_batch_i = {k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in data_batch.items()}
             data_batch_i = {k: v for k, v in data_batch.items()}
             start_frame = num_new_generated_frames * i_clip
             end_frame = num_new_generated_frames * (i_clip + 1) + self.num_input_frames
-
-            # Prepare x_sigma_max
-            if input_video is not None:
-                input_frames = input_video[:, :, start_frame:end_frame].cuda()
-                x0 = self.model.encode(input_frames).contiguous()
-                x_sigma_max = self.model.get_x_from_clean(x0, self.sigma_max, seed=(self.seed + i_clip))
-            else:
-                assert False
-                x_sigma_max = None
 
             data_batch_i[hint_key] = control_input[:, :, start_frame:end_frame].cuda()
             latent_hint = []
@@ -1404,15 +1389,14 @@ class DistilledControl2WorldGenerationPipeline(DiffusionControl2WorldGenerationP
             latents = generate_world_from_control(
                 model=self.model,
                 state_shape=state_shape,
-                is_negative_prompt=True,
+                is_negative_prompt=False,  # Unused for distilled models
                 data_batch=data_batch_i,
                 guidance=self.guidance,
                 num_steps=self.num_steps,
                 seed=(self.seed + i_clip),
                 condition_latent=condition_latent,
                 num_input_frames=num_input_frames,
-                sigma_max=self.sigma_max if x_sigma_max is not None else None,
-                x_sigma_max=x_sigma_max,
+                sigma_max=None,
             )
             log.info("Completed diffusion sampling")
 
