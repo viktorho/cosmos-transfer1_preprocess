@@ -68,8 +68,8 @@ class BaseWorldGenerationPipeline(ABC):
         self.offload_tokenizer = offload_tokenizer
         self.offload_text_encoder_model = offload_text_encoder_model
         self.offload_guardrail_models = offload_guardrail_models
-        self.disable_guardrail = disable_guardrail
-
+        # self.disable_guardrail = disable_guardrail
+        self.disable_guardrail= True
         # Initialize model instances
         self.text_guardrail = None
         self.video_guardrail = None

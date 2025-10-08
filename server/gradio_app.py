@@ -163,20 +163,31 @@ def create_gradio_interface():
 
 
 if __name__ == "__main__":
-    # Check if checkpoints exist
+    # Launch UI immediately in another thread
+    import threading
+
+    def start_ui():
+        try:
+            interface = create_gradio_interface()
+            interface.launch(
+                server_name="0.0.0.0",
+                server_port=8080,
+                share=True,
+                debug=True,
+                max_file_size="500MB",
+                allowed_paths=[Config.output_dir, Config.uploads_dir],
+            )
+        except Exception as e:
+            print("❌ Gradio launch error:", e)
+
+    ui_thread = threading.Thread(target=start_ui, daemon=True)
+    ui_thread.start()
+
+    # Load pipeline in main thread
     if not os.path.exists(Config.checkpoint_dir):
         print(f"Error: checkpoints directory {Config.checkpoint_dir} not found.")
         exit(1)
 
     pipeline, validator = create_pipeline(Config)
-    interface = create_gradio_interface()
-
-    interface.launch(
-        server_name="0.0.0.0",
-        server_port=8080,
-        share=False,
-        debug=True,
-        # Configure file upload limits
-        max_file_size="500MB",  # Adjust as needed
-        allowed_paths=[Config.output_dir, Config.uploads_dir],
-    )
+    print("✅ Pipeline ready.")
+    ui_thread.join()

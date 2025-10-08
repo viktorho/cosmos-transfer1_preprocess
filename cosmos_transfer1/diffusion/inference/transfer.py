@@ -46,6 +46,40 @@ torch.enable_grad(False)
 torch.serialization.add_safe_globals([BytesIO])
 
 
+###########################
+
+from pathlib import Path
+def setup_output_folder(cmd_args, json_args) -> str:
+    """
+    Create structured output folder for the generated videos.
+
+    Structure:
+        outputs/{json_file_name}/{video_name}/
+
+    Example:
+        controlnet_specs = "configs/migration_edge.json"
+        input_video_path = "input/Migration_IsaacSim5.0.mp4"
+        → outputs/migration_edge/Migration_IsaacSim5.0/
+
+    Returns:
+        str: Full path to the created output folder.
+    """
+    # Extract base JSON name
+    json_file_name = Path(cmd_args.controlnet_specs).stem
+
+    # Extract base video name (fallback to default)
+    input_video = json_args.get("input_video_path", "")
+    video_base_name = Path(input_video).stem if input_video else cmd_args.video_save_name
+
+    # Build structured folder path
+    output_folder = Path(cmd_args.video_save_folder) / json_file_name 
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    return str(output_folder)
+
+###########################
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Control to world generation demo script", conflict_handler="resolve")
 
@@ -180,10 +214,16 @@ def parse_arguments() -> argparse.Namespace:
     for key in json_args:
         if f"--{key}" not in sys.argv:
             setattr(cmd_args, key, json_args[key])
-
+    ########################################################
+    cmd_args.video_save_folder = setup_output_folder(cmd_args, json_args)
+    log.info(f"Organized output folder: {cmd_args.video_save_folder}")
+    ########################################################
+    
     log.info(f"final args: {json.dumps(vars(cmd_args), indent=4)}")
 
     return cmd_args, control_inputs
+
+
 
 
 def demo(cfg, control_inputs):

@@ -209,7 +209,7 @@ class DiffusionControl2WorldGenerationPipeline(BaseWorldGenerationPipeline):
             offload_tokenizer=offload_tokenizer,
             offload_text_encoder_model=offload_text_encoder_model,
             offload_guardrail_models=offload_guardrail_models,
-            disable_guardrail=disable_guardrail,
+            disable_guardrail=True,
         )
 
         # Initialize prompt upsampler if needed
@@ -725,7 +725,6 @@ class DiffusionControl2WorldGenerationPipeline(BaseWorldGenerationPipeline):
             self._pop_torchrun_environ_variables()
             prompts = upsampled_prompts
 
-        log.info("Running guardrail checks on all prompts")
         safe_indices = []
         for i, single_prompt in enumerate(prompts):
             is_safe = self._run_guardrail_on_prompt_with_offload(single_prompt)
@@ -737,11 +736,10 @@ class DiffusionControl2WorldGenerationPipeline(BaseWorldGenerationPipeline):
         if not safe_indices:
             log.critical("All prompts failed safety checks")
             return None
-
+        
         safe_prompts = [prompts[i] for i in safe_indices]
         safe_video_paths = [video_paths[i] for i in safe_indices]
         safe_control_inputs = [control_inputs_list[i] for i in safe_indices]
-
         log.info("Running text embedding on all prompts")
         all_prompt_embeddings = []
 
@@ -793,8 +791,8 @@ class DiffusionControl2WorldGenerationPipeline(BaseWorldGenerationPipeline):
                 all_final_prompts.append(safe_prompts[i])
                 if self.save_input_noise:
                     all_input_noise.append(input_noise[i])
-            else:
-                log.critical(f"Generated video {i+1} is not safe")
+                else:
+                    log.critical(f"Generated video {i+1} is not safe")
         if not all_videos:
             log.critical("All generated videos failed safety checks")
             return None

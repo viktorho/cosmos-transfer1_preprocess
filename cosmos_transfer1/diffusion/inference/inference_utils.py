@@ -21,6 +21,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import cv2
 import einops
+print(einops.__version__)
 import imageio
 import numpy as np
 import torch
