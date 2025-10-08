@@ -1,0 +1,17 @@
+{
+    "prompt": "The video depicts an elevator technician at work. He is standing in front of a black elevator door, on a brown floor with a red carpet. The technician is performing a repair task, using a bundle of thin, elongated metal rods to pry open the elevator. Finally, he uses a key to unlock the upper section of the elevator door.",
+    "input_video_path" : "inputs/output.mp4",
+    "vis": {
+        "control_weight": 0.25
+    },
+    "edge": {
+        "control_weight": 0.25
+    },
+    "depth": {
+        "control_weight": 0.25
+    },
+    "seg": {
+        "input_control_prompt": "human arms . elevator. gloves . elongated metal rods",
+        "control_weight": 0.25
+    }
+}

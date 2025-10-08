@@ -1,0 +1,7 @@
+{
+    "prompt": "The initial part mentions a large cylindrical object being lifted by a crane within a factory environment. This seems like a key element. Then there's a scene with a person operating machinery, which could be part of the same industrial process.  Next, the video shows a conveyor belt system moving a cylindrical object. This is another critical component often found in factories for transporting goods. The presence of workers in blue uniforms operating these machines isimportant for safety and efficiency aspects.  Additionally, there's a mention of a worker standing near a large metal structure, possibly overseeing the operation. This highlights the human element in industrial processes. The detailed descriptions of the machinery, such as the crane's mechanism and the conveyor belt's movement, provide context for the types of equipment used.  Putting this together, the video likely captures a sequence where the crane lifts a cylindrical object, perhaps a part of machinery or a product, and then transfers it via conveyor belt to another area. Workers are present throughout, ensuring the process runs smoothly. The setting includes typical industrial elements like metal frameworks, safety markings, and storage areas with boxes.  I need to make sure all these elements are covered in the video",
+    "input_video_path": "inputs/Migration_IsaacSim5.0.mp4",
+    "edge": {
+        "control_weight": 1.0
+    }
+}
