@@ -104,10 +104,18 @@ class EdgeControlModel:
             # Create output directory if it doesn't exist
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-            with imageio.get_writer(output_path, fps=30, macro_block_size=8) as writer:
-                for frame in frames_np:
-                    writer.append_data(frame)
+            # with imageio.get_writer(output_path, fps=30, macro_block_size=8) as writer:
+            #     for frame in frames_np:
+            #         writer.append_data(frame)
 
+            
+            #############
+            from tqdm import tqdm
+
+            with imageio.get_writer(output_path, fps=30, macro_block_size=8) as writer:
+                for frame in tqdm(frames_np, desc="Writing video", unit="frame"):
+                    writer.append_data(frame)
+            #############
             log.info(f"Successfully saved edge control video to: {output_path}")
         except Exception as e:
             log.error(f"Failed to save edge control video to {output_path}: {e}")

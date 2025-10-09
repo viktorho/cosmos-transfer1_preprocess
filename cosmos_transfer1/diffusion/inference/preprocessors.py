@@ -16,8 +16,6 @@
 import json
 import os
 
-import torch
-
 from cosmos_transfer1.auxiliary.depth_anything.model.depth_anything import DepthAnythingModel
 from cosmos_transfer1.auxiliary.edge_control.edge_control import EdgeControlModel
 from cosmos_transfer1.auxiliary.human_keypoint.human_keypoint import HumanKeypointModel
@@ -143,50 +141,65 @@ class Preprocessors:
                 output_folder, f"{hint_key}_input_control_{int(os.environ.get('LOCAL_RANK', 0))}.mp4"
             )
             control_input["input_control"] = out_video
-            if hint_key == "seg":
-                prompt = control_input.get("input_control_prompt", in_prompt)
-                prompt = " ".join(prompt.split()[:128])
-                log.info(
-                    f"no input_control provided for {hint_key}. generating input control video with SAM using {prompt=}"
-                )
-                self.segmentation(
-                    in_video=in_video,
-                    out_video=out_video,
-                    prompt=prompt,
-                )
-            elif hint_key == "depth":
-                log.info(
-                    f"no input_control provided for {hint_key}. generating input control video with DepthAnythingModel"
-                )
-                self.depth(
-                    in_video=in_video,
-                    out_video=out_video,
-                )
-            elif hint_key == "vis":
-                log.info(
-                    f"no input_control provided for {hint_key}. generating input control video with VisControlModel"
-                )
-                self.vis(
-                    in_video=in_video,
-                    out_video=out_video,
-                    blur_strength=blur_strength,
-                )
-            elif hint_key == "edge":
-                log.info(
-                    f"no input_control provided for {hint_key}. generating input control video with EdgeControlModel"
-                )
-                self.edge(
-                    in_video=in_video,
-                    out_video=out_video,
-                    canny_threshold=canny_threshold,
-                )
-            else:
-                log.info(f"no input_control provided for {hint_key}. generating input control video with Openpose")
-                self.keypoint(
-                    in_video=in_video,
-                    out_video=out_video,
+            ###############################################################
+            try:
+            ###############################################################
+                if hint_key == "seg":
+                    prompt = control_input.get("input_control_prompt", in_prompt)
+                    prompt = " ".join(prompt.split()[:128])
+                    log.info(
+                        f"no input_control provided for {hint_key}. generating input control video with SAM using {prompt=}"
+                    )
+                    self.segmentation(
+                        in_video=in_video,
+                        out_video=out_video,
+                        prompt=prompt,
+                    )
+                elif hint_key == "depth":
+                    log.info(
+                        f"no input_control provided for {hint_key}. generating input control video with DepthAnythingModel"
+                    )
+                    self.depth(
+                        in_video=in_video,
+                        out_video=out_video,
+                    )
+                elif hint_key == "vis":
+                    log.info(
+                        f"no input_control provided for {hint_key}. generating input control video with VisControlModel"
+                    )
+                    self.vis(
+                        in_video=in_video,
+                        out_video=out_video,
+                        blur_strength=blur_strength,
+                    )
+                elif hint_key == "edge":
+                    log.info(
+                        f"no input_control provided for {hint_key}. generating input control video with EdgeControlModel"
+                    )
+                    self.edge(
+                        in_video=in_video,
+                        out_video=out_video,
+                        canny_threshold=canny_threshold,
+                    )
+                else:
+                    log.info(f"no input_control provided for {hint_key}. generating input control video with Openpose")
+                    self.keypoint(
+                        in_video=in_video,
+                        out_video=out_video,
+                    )
+            ###############################################################
+            except Exception as e:
+                log.warning(
+                    f"[WARN] Skipped generating input control for {hint_key} "
+                    f"due to error: {type(e).__name__}: {e}"
                 )
 
+                # Nếu lỗi (ví dụ SAM2 không detect được object), đánh dấu file control là None
+                control_input["input_control"] = None
+                # Có thể thêm flag vào dict để sau này dễ kiểm tra
+                control_input["status"] = f"failed: {type(e).__name__}"
+                return
+            ################################################################
     def vis(self, in_video, out_video, blur_strength="medium"):
         if self.vis_model is None:
             self.vis_model = VisControlModel(blur_strength=blur_strength)
@@ -221,6 +234,7 @@ class Preprocessors:
         binarize_video=False,
         legacy_mask=False,
     ):
+        
         if self.seg_model is None:
             self.seg_model = VideoSegmentationModel()
         self.seg_model(

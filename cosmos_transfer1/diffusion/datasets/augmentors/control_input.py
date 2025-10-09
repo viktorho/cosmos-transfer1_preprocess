@@ -921,7 +921,8 @@ def decode_partial_rle_width1(rle_obj, start_row, end_row):
             i += 1
             k += 1
             if not more and (c & 0x10):
-                x |= -1 << (5 * k)
+                mask = (0xFF << (5 * k)) & 0xFF
+                x |= mask
         if len(run_lengths) > 2:
             x += run_lengths[-2]
 

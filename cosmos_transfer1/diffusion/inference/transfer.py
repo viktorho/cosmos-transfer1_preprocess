@@ -72,7 +72,7 @@ def setup_output_folder(cmd_args, json_args) -> str:
     video_base_name = Path(input_video).stem if input_video else cmd_args.video_save_name
 
     # Build structured folder path
-    output_folder = Path(cmd_args.video_save_folder) / json_file_name 
+    output_folder = Path(cmd_args.video_save_folder) / json_file_name / video_base_name
     output_folder.mkdir(parents=True, exist_ok=True)
 
     return str(output_folder)
@@ -266,7 +266,7 @@ def demo(cfg, control_inputs):
         process_group = parallel_state.get_context_parallel_group()
 
         device_rank = distributed.get_rank(process_group)
-
+    
     preprocessors = Preprocessors()
 
     if cfg.use_distilled:

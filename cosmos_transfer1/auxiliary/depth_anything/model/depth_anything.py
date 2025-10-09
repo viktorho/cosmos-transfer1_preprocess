@@ -144,8 +144,11 @@ class DepthAnythingModel:
 
     @staticmethod
     def write_video(frames, output_path, fps=30):
+        ##############################
+        import tqdm
+        
         with imageio.get_writer(output_path, fps=fps, macro_block_size=8) as writer:
-            for frame in frames:
-                if len(frame.shape) == 2:  # single channel
+            for frame in tqdm(frames, desc="Writing frames", unit="frame", total=len(frames)):
+                if len(frame.shape) == 2:  
                     frame = frame[:, :, None].repeat(3, axis=2)
                 writer.append_data(frame)

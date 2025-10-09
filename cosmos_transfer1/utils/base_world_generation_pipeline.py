@@ -68,8 +68,10 @@ class BaseWorldGenerationPipeline(ABC):
         self.offload_tokenizer = offload_tokenizer
         self.offload_text_encoder_model = offload_text_encoder_model
         self.offload_guardrail_models = offload_guardrail_models
-        # self.disable_guardrail = disable_guardrail
+        ###################################################
         self.disable_guardrail= True
+        # self.disable_guardrail = disable_guardrail
+        ###################################################
         # Initialize model instances
         self.text_guardrail = None
         self.video_guardrail = None
@@ -80,15 +82,17 @@ class BaseWorldGenerationPipeline(ABC):
 
         if not self.offload_text_encoder_model:
             self._load_text_encoder_model()
-        if not self.offload_guardrail_models and not self.disable_guardrail:
-            if self.has_text_input:
-                self._load_text_guardrail()
-            self._load_video_guardrail()
+        
         if not self.offload_network:
             self._load_network()
         if not self.offload_tokenizer:
             self._load_tokenizer()
-
+            
+        if not self.offload_guardrail_models and not self.disable_guardrail:
+            if self.has_text_input:
+                self._load_text_guardrail()
+            self._load_video_guardrail()
+            
     def _load_tokenizer(self):
         pass
 

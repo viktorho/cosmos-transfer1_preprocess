@@ -104,11 +104,12 @@ class VisControlModel:
         try:
             # Create output directory if it doesn't exist
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
+            ##############################
+            from tqdm import tqdm
             with imageio.get_writer(output_path, fps=30, macro_block_size=8) as writer:
-                for frame in frames_np:
+                for frame in tqdm(frames_np, total=frames_np.shape[0], desc=f"Saving {os.path.basename(output_path)}"):
                     writer.append_data(frame)
-
+            ###############################
             log.info(f"Successfully saved vis control video to: {output_path}")
         except Exception as e:
             log.error(f"Failed to save vis control video to {output_path}: {e}")
